@@ -1,0 +1,12 @@
+{
+  "agent": "gpt",
+  "attempts": 5,
+  "N_completed": 5,
+  "N_incomplete": 0,
+  "sum_V": 0,
+  "sum_C": 5,
+  "sum_FA": 5,
+  "VRR": 0.0,
+  "FAR": 1.0,
+  "incomplete": []
+}

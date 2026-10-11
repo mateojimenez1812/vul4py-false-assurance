@@ -1,0 +1,6 @@
+  gpt/CVE-2022-3102: COMPLETE C=1 A=1 F=0 S=0 V=0 FA=1 (30.1s)
+  gpt/CVE-2023-47163: COMPLETE C=1 A=0 F=0 S=0 V=0 FA=1 (0.2s)
+  gpt/CVE-2024-6866: COMPLETE C=1 A=1 F=0 S=0 V=0 FA=1 (25.4s)
+  gpt/CVE-2025-43859: COMPLETE C=1 A=0 F=0 S=0 V=0 FA=1 (0.2s)
+  gpt/CVE-2025-46656: COMPLETE C=1 A=0 F=0 S=0 V=0 FA=1 (0.2s)
+[done] gpt: complete 5/5, verified 0/5
