@@ -4,6 +4,8 @@ Individual networks-course project. It extends the [Vul4Py](https://github.com/t
 
 The goal is to measure how often the model says "this is fixed" when it is not (false assurance), not to make the model look good. Failures are reported as results.
 
+Base benchmark: Vul4Py at commit `2649d7b89e796738ebc2bc3fa9480dff5ae15898`. This repository is that tree plus the changes described below (the original history is kept, our commits come after it).
+
 ## Preliminary results (5 cases, 1 attempt each)
 
 | Vulnerability | Claim C | Confidence P | A (applies) | F (functional) | S (security) | V | FA | Latency (ms) |
@@ -47,7 +49,28 @@ runs/midterm/gpt/<CVE>/      prompt.txt, llm_response.json, patch.diff, frozen.s
 runs/midterm/baseline/       test logs of the vulnerable and fixed versions (validation)
 runs/midterm/results.csv     one row per vulnerability
 runs/midterm/metrics.json    N, ΣV, ΣC, ΣFA, VRR, FAR
+results/results.csv          identical copy of runs/midterm/results.csv, for easy access
+requirements.txt             Python dependency of the generation step (openai)
 ```
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    A[selected_cases.txt] --> B[run_agent.py<br/>fixed prompt + vulnerable source]
+    B -->|HTTPS POST| C[(OpenAI API<br/>gpt-6-luna)]
+    C -->|JSON: claim, confidence, patch| B
+    B --> D[Freeze<br/>llm_response.json, patch.diff<br/>sha256 + read-only]
+    D --> E[evaluate.py<br/>re-check hashes]
+    E --> F[Vul4Py fork + apply patch<br/>A]
+    F --> G[functional tests F]
+    F --> H[exploit / regression tests S]
+    G --> I[V = A·F·S, FA = C·1-V]
+    H --> I
+    I --> J[aggregate_results.py<br/>results.csv, VRR, FAR]
+```
+
+The model only appears on the left side of the freeze. Everything on the right reads files and never talks to the model.
 
 ## Installation
 
@@ -150,8 +173,9 @@ FAR = ΣFA / ΣC                   undefined if ΣC = 0 (report N and incomplete
    * `401` invalid or missing key. Fix the credentials; do not retry.
    * `403` key valid but not allowed to use that model or resource.
    * `404` wrong model name or endpoint.
-   * `429` rate limit or quota exceeded. Retry later with exponential backoff and honour `Retry-After`. (In this project retries would also break the one-attempt rule, so an error is recorded as an incomplete attempt.)
+   * `429` rate limit or quota exceeded. Retry later with exponential backoff and honour `Retry-After`. (Our own code never re-sends a request: an error that reaches it is recorded and the attempt is incomplete. The SDK's built-in retries are described below.)
    * `5xx` (500, 502, 503, 504) server or gateway problem. Transient, so retry with backoff in a normal application. Here it is recorded as incomplete.
+   * **Retries and timeouts.** The call uses the OpenAI Python SDK with its default settings: up to 2 automatic retries with exponential backoff on connection errors, 408, 409, 429 and 5xx, and a 10-minute timeout. We did not disable them. The SDK does not log retries, so `latency_ms` would include them if one had happened; the only API error seen in this project was an HTTP 400, which the SDK never retries. A stricter design would set `max_retries=0` so that each case is exactly one request.
 6. **Failures below HTTP.** DNS failure (name not resolved), TCP timeout or reset, and TLS errors (expired or untrusted certificate, clock skew) are raised as exceptions before any status code exists. They are recorded in `generation.json` as `api_error` with the exception text.
 
 ## Security of the repository
